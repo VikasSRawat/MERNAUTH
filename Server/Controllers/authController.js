@@ -223,7 +223,7 @@ export const sendResetOTP = async(req,res)=>{
         user.resetOtp = otp;
 
         //* The expiry date of the otp will only be valid for one day
-        user.verifyOtpExpireAt = Date.now() + 24*60*60*1000;
+        user.resetOtpExpireAt = Date.now() + 24*60*60*1000;
 
         await user.save();
 
@@ -232,14 +232,14 @@ export const sendResetOTP = async(req,res)=>{
         const mailOptions = {
             from : process.env.SENDER_EMAIL,
             to : user.email,
-            subject : 'Account verification otp',
-            text : `Your otp is ${otp}. Please verify the otp using this.`
+            subject : 'reset password otp',
+            text : `Your otp is ${otp}. Please reset password using the otp using this.`
         }   
 
         //* Sending the user otp to the mail
         await transporter.sendMail(mailOptions);
 
-        res.json({success:true,message : 'Verification OTP sent on email'});
+        res.json({success:true,message : 'reset password OTP sent on email'});
 
         //? verifyUser();
 
