@@ -22,7 +22,7 @@ export const register = async(req,res)=>{
 
         await user.save();
 
-        //* Generating the token
+        //* Generating the token with the automated user Id in the json
         const token = jwt.sign({id:user._id},process.env.JWT_SECRET,{expiresIn:"7d"});
 
         //* Adding the token to the cookie of the client
@@ -35,7 +35,7 @@ export const register = async(req,res)=>{
         
         //* Creating the welcome email
         const mailOptions = {
-            from : process.env.SENDER_EMAIL,
+            from : process.env.GMAIL_EMAIL,
             to : email,
             subject : 'Welcome to MERN AUTH',
             text : `Welcome to MERN AUTH website, your account has been created with email id : ${email}`
@@ -48,7 +48,7 @@ export const register = async(req,res)=>{
 
     } catch (error) {
         console.log("catch error ",error);
-        res.json({success:false,message:error.message})
+        res.status(403).json({success:false,message:error.message})
     }
 }
 
@@ -135,7 +135,7 @@ export const sendVerifyOTP = async(req,res)=>{
 
         //* Creating the welcome email
         const mailOptions = {
-            from : process.env.SENDER_EMAIL,
+            from : process.env.GMAIL_EMAIL,
             to : user.email,
             subject : 'Account verification otp',
             text : `Your otp is ${otp}. Please verify the otp using this.`
@@ -209,28 +209,25 @@ export const isAuthenticated = async (req,res)=>{
 
 
 export const sendResetOTP = async(req,res)=>{
+    console.log("sendResetOTP Hit");
+    const {email} = req.body;
+    if(!email){
+        return res.status(401).json({success:false,message:"Email missing"});
+    }
     try {
-        const {userId} = req.body; 
-        const user = await userModel.findById(userId);
-        
-        if(!user.isAccountVerified){
-            return res.json({success:false,message:"User Does not exist"});
+        const user = await userModel.findOne({email});
+        if(!user){
+            return res.status(404).json({success:false,message:"user not found"});
         }
-        
-        //* Script to generate a 6 digit random otp
-        const otp = String(Math.floor(100000 + Math.random()*900000))
-
+        const otp = String(Math.floor(100000+Math.random()*900000));
         user.resetOtp = otp;
-
-        //* The expiry date of the otp will only be valid for one day
-        user.resetOtpExpireAt = Date.now() + 24*60*60*1000;
+        user.resetOtpExpireAt = Date.now() + 15*60*1000;
 
         await user.save();
 
-
         //* Creating the welcome email
         const mailOptions = {
-            from : process.env.SENDER_EMAIL,
+            from : process.env.GMAIL_EMAIL,
             to : user.email,
             subject : 'reset password otp',
             text : `Your otp is ${otp}. Please reset password using the otp using this.`
@@ -240,8 +237,6 @@ export const sendResetOTP = async(req,res)=>{
         await transporter.sendMail(mailOptions);
 
         res.json({success:true,message : 'reset password OTP sent on email'});
-
-        //? verifyUser();
 
     } catch (error) {
         return res.json({success:false,message:error.message})
@@ -256,7 +251,7 @@ export const resetPassword = async(req,res)=>{
     const {email,otp,newPassword} = req.body;
     
     if(!email || ! otp || newPassword){
-        return res.json({success:false,message:"Missing Information"});
+        return res.json({success:false,message:"Missing Information",email,otp,newPassword});
     }
 
     try {
