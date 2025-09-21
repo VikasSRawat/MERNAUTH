@@ -250,7 +250,7 @@ export const sendResetOTP = async(req,res)=>{
 export const resetPassword = async(req,res)=>{
     const {email,otp,newPassword} = req.body;
     
-    if(!email || ! otp || newPassword){
+    if(!email || ! otp || !newPassword){
         return res.json({success:false,message:"Missing Information",email,otp,newPassword});
     }
 
@@ -269,7 +269,7 @@ export const resetPassword = async(req,res)=>{
             return res.status(403).json({success:false,message:"Expired OTP"});
         }
 
-        const hashedPassword = await bcrypt.hash(resetPassword,10);
+        const hashedPassword = await bcrypt.hash(newPassword,10);
 
         user.password = hashedPassword;
         user.resetOtp = '';
@@ -280,6 +280,7 @@ export const resetPassword = async(req,res)=>{
         res.status(200).json({success:true,message:"Password has been reset"});
 
     } catch (error) {
+        console.log("Catch error "+error);
         return res.json({success:false,message:error.message});
     }
 }
